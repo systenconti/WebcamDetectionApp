@@ -3,6 +3,8 @@ import time
 from emailing import send_email
 import glob
 import os
+from threading import Thread
+from time import sleep
 
 # create a video object
 video = cv2.VideoCapture(0)
@@ -14,6 +16,7 @@ count = 1
 
 
 def clean_folder():
+    sleep(3)
     images = glob.glob("images/*.png")
     for image in images:
         os.remove(image)
@@ -55,10 +58,17 @@ while True:
     # compare statuses when object enters and leaves the frame and then trigger action
     status_list.append(status)
     status_list = status_list[-2:]
+
     if status_list[0] == 1 and status_list[1] == 0:
-        send_email(image_to_send)
+        email_thread = Thread(target=send_email, args=(image_to_send, )) #comma makes a tuple
+        email_thread.daemon = True
         print("Email was sent")
-        clean_folder()
+        clean_thread = Thread(target=clean_folder)
+        clean_thread.daemon = True
+
+        email_thread.start()
+        clean_thread.start()
+
     print(status_list)
     # show the video
     cv2.imshow("Video", frame)
