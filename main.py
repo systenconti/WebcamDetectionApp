@@ -2,14 +2,23 @@ import cv2
 import time
 from emailing import send_email
 import glob
+import os
 
-#create a video object
+# create a video object
 video = cv2.VideoCapture(0)
 time.sleep(1)
 
 first_frame = None
 status_list = []
 count = 1
+
+
+def clean_folder():
+    images = glob.glob("images/*.png")
+    for image in images:
+        os.remove(image)
+
+
 while True:
     status = 0
     check, frame = video.read()
@@ -25,12 +34,13 @@ while True:
     thresh_frame = cv2.threshold(delta_frame, 70, 255, cv2.THRESH_BINARY)[1]
     dil_frame = cv2.dilate(thresh_frame, None, iterations=2)
     # app looks for countours to detect object
-    contours, check = cv2.findContours(dil_frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    #prevent from detecting too little objects
+    contours, check = cv2.findContours(
+        dil_frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # prevent from detecting too little objects
     for contour in contours:
         if cv2.contourArea(contour) < 5000:
             continue
-        #create rectangle
+        # create rectangle
         x, y, w, h = cv2.boundingRect(contour)
         rectangle = cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
         if rectangle.any():
@@ -48,11 +58,12 @@ while True:
     if status_list[0] == 1 and status_list[1] == 0:
         send_email(image_to_send)
         print("Email was sent")
+        clean_folder()
+    print(status_list)
     # show the video
     cv2.imshow("Video", frame)
     # create a key to break the loop and exit the video
     key = cv2.waitKey(1)
-
     if key == ord('q'):
         break
 
